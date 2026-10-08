@@ -46,6 +46,9 @@ services:
 
   web:
     build: ./web
+    environment:
+      AUTH_USER: ${AUTH_USER:-}
+      AUTH_PASSWORD: ${AUTH_PASSWORD:-}
     ports:
       - "${WEB_BIND:-0.0.0.0}:${WEB_PORT:-8080}:80"
     depends_on:

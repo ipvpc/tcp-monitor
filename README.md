@@ -12,12 +12,30 @@ Checks run on the interval you set (5 seconds to 24 hours). Failures are stored 
 ## Run
 
 ```powershell
+copy .env.example .env
 docker compose up --build
 ```
 
-Open http://127.0.0.1:8080
+On this computer, open http://127.0.0.1:8080.
 
-The site is bound to localhost and has no login. To publish it on a network, set `WEB_BIND=0.0.0.0` only on a trusted network.
+## Remote clients
+
+The site listens on every network interface, port 8080. From another machine, open `http://<this-computer-address>:8080`. Postgres and the API stay on the Docker network; only this port is published.
+
+Set a login in `.env` before other machines can reach the port. Anyone who can open the site can add targets, and checks connect to whatever address you enter.
+
+```
+AUTH_USER=monitor
+AUTH_PASSWORD=choose-a-password
+```
+
+Restart the site after changing them: `docker compose up -d --build web`. The browser asks for that user and password, and the same login covers the API. Leave both values empty only when the port is not reachable from other machines.
+
+If another computer cannot connect, allow inbound TCP 8080. In an Administrator PowerShell window:
+
+```powershell
+New-NetFirewallRule -DisplayName "TCP Monitor" -Direction Inbound -LocalPort 8080 -Protocol TCP -Action Allow
+```
 
 ## Search history
 
@@ -36,12 +54,14 @@ Copy `.env.example` to `.env` to override the defaults.
 | `POSTGRES_PASSWORD` | `tcpmon` | Database password. The API URL-encodes it. |
 | `RETENTION_DAYS` | `90` | Delete checks older than this. `0` keeps them. |
 | `PROBE_CONCURRENCY` | `10` | How many checks run at once. |
-| `WEB_BIND` / `WEB_PORT` | `127.0.0.1` / `8080` | Where the site is published. |
+| `WEB_BIND` / `WEB_PORT` | `0.0.0.0` / `8080` | Address and port published on this computer. |
+| `AUTH_USER` / `AUTH_PASSWORD` | empty | Login required when both are set. |
 
-History is stored in the `pgdata` volume and survives restarts. To wipe it:
+History is stored in `./data/postgres` and survives restarts. To wipe it, stop the stack and delete that folder:
 
 ```powershell
-docker compose down -v
+docker compose down
+Remove-Item -Recurse -Force .\data\postgres
 ```
 
 ## Tests
